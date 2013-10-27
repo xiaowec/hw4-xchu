@@ -105,4 +105,8 @@
 			</plugin>
 		</plugins>
 	</build>
+	<scm>
+		<connection>scm:git:git@github.com:chuxiaowen/hw4-xchu.git</connection>
+		<developerConnection>scm:git:git@github.com:chuxiaowen/hw4-xchu.git</developerConnection>
+	</scm>
 </project>
