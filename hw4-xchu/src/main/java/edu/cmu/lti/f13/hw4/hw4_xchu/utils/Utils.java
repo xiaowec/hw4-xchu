@@ -1,7 +1,11 @@
 package edu.cmu.lti.f13.hw4.hw4_xchu.utils;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 
 import org.apache.uima.jcas.JCas;
@@ -13,9 +17,36 @@ import org.apache.uima.jcas.cas.NonEmptyStringList;
 import org.apache.uima.jcas.cas.StringList;
 import org.apache.uima.jcas.cas.TOP;
 import org.apache.uima.jcas.tcas.Annotation;
+import org.omg.CORBA.PRIVATE_MEMBER;
+import org.springframework.context.support.StaticApplicationContext;
 import org.uimafit.util.JCasUtil;
 
 public class Utils {
+  
+  private static String textpath = "./src/main/resources/stopwords.txt";
+  private static HashSet<String> stopwords = new HashSet<String>();
+  
+  static{
+     File file = new File(textpath);
+     BufferedReader reader = null;
+     
+     try {
+      reader = new BufferedReader(new FileReader(file));
+      String tempString = null;
+      
+      while ((tempString = reader.readLine()) != null) {
+        stopwords.add(tempString);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    
+  }
+  
+  public static boolean judgeStopword(String word) {
+   return stopwords.contains(word);
+  }
+  
 	public static <T extends TOP> ArrayList<T> fromFSListToCollection(FSList list,
 			Class<T> classType) {
 

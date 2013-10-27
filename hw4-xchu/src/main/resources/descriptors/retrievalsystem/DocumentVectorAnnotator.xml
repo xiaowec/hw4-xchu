@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <analysisEngineDescription xmlns="http://uima.apache.org/resourceSpecifier">
   <frameworkImplementation>org.apache.uima.java</frameworkImplementation>
   <primitive>true</primitive>
@@ -20,7 +21,10 @@
     <capabilities>
       <capability>
         <inputs/>
-        <outputs/>
+        <outputs>
+          <type allAnnotatorFeatures="true">edu.cmu.lti.f13.hw4.hw4_xchu.typesystems.Token</type>
+          <type allAnnotatorFeatures="true">uima.tcas.DocumentAnnotation</type>
+        </outputs>
         <languagesSupported/>
       </capability>
     </capabilities>

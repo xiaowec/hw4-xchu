@@ -2,7 +2,11 @@ package edu.cmu.lti.f13.hw4.hw4_xchu.casconsumers;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.uima.cas.CAS;
 import org.apache.uima.cas.CASException;
@@ -15,6 +19,8 @@ import org.apache.uima.resource.ResourceProcessException;
 import org.apache.uima.util.ProcessTrace;
 
 import edu.cmu.lti.f13.hw4.hw4_xchu.typesystems.Document;
+import edu.cmu.lti.f13.hw4.hw4_xchu.typesystems.Token;
+import edu.cmu.lti.f13.hw4.hw4_xchu.utils.Utils;
 
 
 public class RetrievalEvaluator extends CasConsumer_ImplBase {
@@ -24,6 +30,18 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 
 	/** query and text relevant values **/
 	public ArrayList<Integer> relList;
+	
+	/** term and frequency values **/
+	public ArrayList<HashMap<String, Integer>> termList;
+	
+	/** raw sentences **/
+	public ArrayList<String> sentenceList;
+	
+	/** query term **/
+	public HashMap<Integer, Integer> queryMap;
+	
+	/** rank list for result **/
+	public ArrayList<Integer> rankList;
 
 		
 	public void initialize() throws ResourceInitializationException {
@@ -31,6 +49,14 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		qIdList = new ArrayList<Integer>();
 
 		relList = new ArrayList<Integer>();
+		
+		termList = new ArrayList<HashMap<String,Integer>>();
+		
+		sentenceList = new ArrayList<String>();
+		
+		queryMap = new HashMap<Integer, Integer>();
+		
+		rankList = new ArrayList<Integer>();
 
 	}
 
@@ -55,12 +81,23 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 
 			//Make sure that your previous annotators have populated this in CAS
 			FSList fsTokenList = doc.getTokenList();
-			//ArrayList<Token>tokenList=Utils.fromFSListToCollection(fsTokenList, Token.class);
-
-			qIdList.add(doc.getQueryID());
-			relList.add(doc.getRelevanceValue());
+			ArrayList<Token> tokenList = Utils.fromFSListToCollection(fsTokenList, Token.class);
+			HashMap<String, Integer> tokenMap = new HashMap<String, Integer>();
+			for(Token token:tokenList){
+			  tokenMap.put(token.getText(), token.getFrequency());
+			}
 			
-			//Do something useful here
+			int queryid = doc.getQueryID();
+			int relvalue = doc.getRelevanceValue();
+			
+			qIdList.add(queryid);
+			relList.add(relvalue);
+			termList.add(tokenMap);
+			sentenceList.add(doc.getText());
+			
+			if (relvalue == 99) {
+        queryMap.put(queryid, termList.indexOf(tokenMap));
+      }
 
 		}
 
@@ -75,14 +112,67 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 			throws ResourceProcessException, IOException {
 
 		super.collectionProcessComplete(arg0);
+		
+		
+		//store the result for similarity measure
+		double[] scorelist = new double[qIdList.size()];
 
-		// TODO :: compute the cosine similarity measure
-		
-		
+		//compute the cosine similarity measure
+		for (int position = 0; position < qIdList.size(); position++) {
+      int queryid = qIdList.get(position);
+      int relvalue = relList.get(position);
+      
+      double cos_similarity = 0.0;
+      
+      if (relvalue != 99){
+        //get document vector
+        Map<String, Integer> docVector = termList.get(position);
+        
+        //get query vector
+        int qposition = queryMap.get(queryid);
+        Map<String, Integer> queryVector = termList.get(qposition);
+        
+        cos_similarity = computeCosineSimilarity(queryVector, docVector);
+        
+      }
+      
+      //store queryid,position and similarity for each answer
+      scorelist[position] = cos_similarity;
+      
+    }
 		
 		// TODO :: compute the rank of retrieved sentences
-		
-		
+		int queryid = 0;
+		for (int i = 0; i < queryMap.size(); i++) {
+      queryid = i+1;
+      ArrayList<double[]> tempList = new ArrayList<double[]>();
+      
+      //sort answers and get rank
+      for (int j = 0; j < qIdList.size(); j++) {
+        if (qIdList.get(j) == queryid) { 
+          double[] temparray = new double[2];
+          temparray[0] = j;
+          temparray[1] = scorelist[j];
+          tempList.add(temparray);
+        }
+      }
+      
+      //rank answers
+      Collections.sort(tempList, comparator);
+      
+      for (double[] element : tempList) {
+        int position = (int) element[0];
+        double score = element[1];
+        
+        if (relList.get(position) == 1) {
+          System.out.print("Score: "+score);
+          System.out.print("  rank= "+(tempList.indexOf(element)+1));
+          System.out.print("  rel=1 qid="+qIdList.get(position)+" "+sentenceList.get(position));
+          System.out.print("\n");
+          rankList.add(tempList.indexOf(element)+1);
+        }
+      }
+    }
 		
 		// TODO :: compute the metric:: mean reciprocal rank
 		double metric_mrr = compute_mrr();
@@ -95,11 +185,31 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 	 */
 	private double computeCosineSimilarity(Map<String, Integer> queryVector,
 			Map<String, Integer> docVector) {
-		double cosine_similarity=0.0;
+		double cosine_similarity= 0.0;
+		double query_lenth = 0.0;
+		double doc_lenth = 0.0;
 
-		// TODO :: compute cosine similarity between two sentences
+		//compute cosine similarity between two sentences
+
+		for (Entry<String, Integer> entry : queryVector.entrySet()) {
+		  String qterm = entry.getKey();
+		  if (docVector.containsKey(qterm)) {
+        cosine_similarity += entry.getValue() * docVector.get(qterm);
+      }
+      query_lenth += Math.pow(entry.getValue(), 2);
+    }
 		
-
+		for (Entry<String, Integer> entry : docVector.entrySet()){
+		  doc_lenth += Math.pow(entry.getValue(), 2);
+		}
+		
+		//normalize query and doc length
+		query_lenth = Math.sqrt(query_lenth);
+		doc_lenth = Math.sqrt(doc_lenth);
+		cosine_similarity = cosine_similarity/(query_lenth * doc_lenth);
+		
+		//System.out.println(cosine_similarity);
+		
 		return cosine_similarity;
 	}
 
@@ -111,8 +221,26 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		double metric_mrr=0.0;
 
 		// TODO :: compute Mean Reciprocal Rank (MRR) of the text collection
+		for (Integer rank : rankList) {
+      metric_mrr += (double)1/rank;
+    }
+		metric_mrr = metric_mrr/rankList.size();
 		
 		return metric_mrr;
 	}
+	
+public static Comparator<double[]> comparator = new Comparator<double[]>() {
+    
+    public int compare(double[] a, double[] b)
+    {
+      if (a[1] < b[1]) {
+        return 1;
+      }
+      if (a[1] > b[1]) {
+        return -1;
+      }
+      return 0;
+    }
+  };
 
 }

@@ -1,18 +1,25 @@
 package edu.cmu.lti.f13.hw4.hw4_xchu.annotators;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.cas.FSIterator;
 import org.apache.uima.jcas.JCas;
-import org.apache.uima.jcas.cas.IntegerArray;
-import org.apache.uima.jcas.cas.StringArray;
+import org.apache.uima.jcas.cas.FSList;
 import org.apache.uima.jcas.tcas.Annotation;
 
 import edu.cmu.lti.f13.hw4.hw4_xchu.typesystems.Document;
+import edu.cmu.lti.f13.hw4.hw4_xchu.typesystems.Token;
+import edu.cmu.lti.f13.hw4.hw4_xchu.utils.Utils;
 
 public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 
-	@Override
+  @Override
 	public void process(JCas jcas) throws AnalysisEngineProcessException {
 
 		FSIterator<Annotation> iter = jcas.getAnnotationIndex().iterator();
@@ -30,12 +37,44 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 	 */
 
 	private void createTermFreqVector(JCas jcas, Document doc) {
-
+	  
 		String docText = doc.getText();
+		Map<String, Integer> termMap = new HashMap<String, Integer>(); 
+		
 		
 		//TO DO: construct a vector of tokens and update the tokenList in CAS
+		String[] words = docText.split(" ");
+		for (int i = 0; i < words.length; i++) {
+      
+		  //remove Stopwords
+		  if (!Utils.judgeStopword(words[i])) {
+		    
+		    //update frequence for each term
+        if (termMap.containsKey(words[i])) {
+          int freq = termMap.get(words[i]);
+          termMap.put(words[i], freq+1);
+        }
+        else {
+          termMap.put(words[i], 1);
+        }
+      }
+    }
 		
-
+		//Construct ArrayList of Tokens
+		ArrayList<Token> tlist = new ArrayList<Token>();
+		Iterator iter = termMap.entrySet().iterator();
+		
+		//add tokens to ArrayList
+		while (iter.hasNext()) {
+		  Token token = new Token(jcas);
+		  Entry<String, Integer> entry = (Entry<String, Integer>) iter.next();
+      token.setText(entry.getKey());
+      token.setFrequency(entry.getValue());
+      tlist.add(token);
+    }
+		
+		//convert ArrayList to FSList
+		doc.setTokenList(Utils.fromCollectionToFSList(jcas, tlist));
 	}
 
 }
