@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.uima.UimaContext;
 import org.apache.uima.cas.CAS;
 import org.apache.uima.cas.CASException;
 import org.apache.uima.cas.FSIterator;
@@ -42,6 +43,8 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 	
 	/** rank list for result **/
 	public ArrayList<Integer> rankList;
+	
+	public String similarity_method = "dice_similarity";
 
 		
 	public void initialize() throws ResourceInitializationException {
@@ -57,11 +60,11 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		queryMap = new HashMap<Integer, Integer>();
 		
 		rankList = new ArrayList<Integer>();
-
+		
 	}
 
 	/**
-	 * TODO :: 1. construct the global word dictionary 2. keep the word
+	 * 1. construct the global word dictionary 2. keep the word
 	 * frequency for each sentence
 	 */
 	@Override
@@ -104,7 +107,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 	}
 
 	/**
-	 * TODO 1. Compute Cosine Similarity and rank the retrieved sentences 2.
+	 * 1. Compute Cosine Similarity and rank the retrieved sentences 2.
 	 * Compute the MRR metric
 	 */
 	@Override
@@ -122,7 +125,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       int queryid = qIdList.get(position);
       int relvalue = relList.get(position);
       
-      double cos_similarity = 0.0;
+      double similarity = 0.0;
       
       if (relvalue != 99){
         //get document vector
@@ -132,16 +135,24 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
         int qposition = queryMap.get(queryid);
         Map<String, Integer> queryVector = termList.get(qposition);
         
-        cos_similarity = computeCosineSimilarity(queryVector, docVector);
+        if(similarity_method == "cos_similarity"){
+          similarity = computeCosineSimilarity(queryVector, docVector);
+        }
+        else if (similarity_method == "dice_similarity") {
+          similarity = computeDiceSimilarity(queryVector, docVector);
+        }
+        else if (similarity_method == "jaccard_similarity"){
+          similarity = computeJaccradSimilarity(queryVector, docVector);
+        }
         
       }
       
       //store queryid,position and similarity for each answer
-      scorelist[position] = cos_similarity;
+      scorelist[position] = similarity;
       
     }
 		
-		// TODO :: compute the rank of retrieved sentences
+		//compute the rank of retrieved sentences
 		int queryid = 0;
 		for (int i = 0; i < queryMap.size(); i++) {
       queryid = i+1;
@@ -174,7 +185,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       }
     }
 		
-		// TODO :: compute the metric:: mean reciprocal rank
+		//compute the metric:: mean reciprocal rank
 		double metric_mrr = compute_mrr();
 		System.out.println(" (MRR) Mean Reciprocal Rank ::" + metric_mrr);
 	}
@@ -212,7 +223,56 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		
 		return cosine_similarity;
 	}
-
+	
+	/**
+   * 
+   * @return jaccard_similarity
+   */
+	private double computeJaccradSimilarity(Map<String, Integer> queryVector,
+	        Map<String, Integer> docVector) {
+	  double similarity = 0.0;
+	  double intersect = 0.0;
+	  double union = 0.0;
+	  
+	  for (Entry<String, Integer> entry : queryVector.entrySet()){
+	    union += 1;
+	    if (docVector.containsKey(entry.getKey())) {
+        intersect += 1;
+      }
+	  }
+	  
+	  for (Entry<String, Integer> entry: docVector.entrySet()) {
+      if (!queryVector.containsKey(entry.getKey())) {
+        union += 1;
+      }
+    }
+         
+	  similarity = intersect/union;
+	  return similarity;
+	}
+	
+	/**
+   * 
+   * @return dice_similarity
+   */
+	private double computeDiceSimilarity(Map<String, Integer> queryVector,
+          Map<String, Integer> docVector){
+	  double similarity = 0.0;
+	  double intersect = 0.0;
+	  double union = 0.0;
+	  
+	  for(Entry<String, Integer> entry: queryVector.entrySet()){
+	    if (docVector.containsKey(entry.getKey())) {
+        intersect += 1;
+      }
+	  }
+	  
+	  union = queryVector.size() + docVector.size();
+	  similarity = 2*intersect/union;
+	  
+	  return similarity;
+	}
+	
 	/**
 	 * 
 	 * @return mrr
@@ -220,7 +280,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 	private double compute_mrr() {
 		double metric_mrr=0.0;
 
-		// TODO :: compute Mean Reciprocal Rank (MRR) of the text collection
+		//compute Mean Reciprocal Rank (MRR) of the text collection
 		for (Integer rank : rankList) {
       metric_mrr += (double)1/rank;
     }

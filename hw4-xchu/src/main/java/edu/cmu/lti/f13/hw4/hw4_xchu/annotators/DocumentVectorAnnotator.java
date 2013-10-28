@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.cas.FSIterator;
+import org.apache.uima.internal.util.TextTokenizer;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSList;
 import org.apache.uima.jcas.tcas.Annotation;
@@ -41,21 +42,17 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 		String docText = doc.getText();
 		Map<String, Integer> termMap = new HashMap<String, Integer>(); 
 		
-		
-		//TO DO: construct a vector of tokens and update the tokenList in CAS
-		String[] words = docText.split(" ");
-		for (int i = 0; i < words.length; i++) {
-      
-		  //remove Stopwords
-		  if (!Utils.judgeStopword(words[i])) {
-		    
-		    //update frequence for each term
-        if (termMap.containsKey(words[i])) {
-          int freq = termMap.get(words[i]);
-          termMap.put(words[i], freq+1);
+	  //TO DO: construct a vector of tokens and update the tokenList in CAS
+		TextTokenizer tokenizer = new TextTokenizer(docText);
+		while (tokenizer.hasNext()) {
+		  String word = tokenizer.nextToken();
+		  if (!Utils.judgeStopword(word)) {
+		    if (termMap.containsKey(word)) {
+          int freq = termMap.get(word);
+          termMap.put(word, freq+1);
         }
         else {
-          termMap.put(words[i], 1);
+          termMap.put(word, 1);
         }
       }
     }
@@ -63,6 +60,7 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 		//Construct ArrayList of Tokens
 		ArrayList<Token> tlist = new ArrayList<Token>();
 		Iterator iter = termMap.entrySet().iterator();
+		
 		
 		//add tokens to ArrayList
 		while (iter.hasNext()) {
