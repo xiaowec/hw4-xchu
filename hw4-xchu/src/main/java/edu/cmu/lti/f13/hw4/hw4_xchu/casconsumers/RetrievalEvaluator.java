@@ -42,7 +42,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 	/** rank list for result **/
 	public ArrayList<Integer> rankList;
 	
-	public String similarity_method = "dice_similarity";
+	public String similarity_method = "cos_similarity";
 
 		
 	public void initialize() throws ResourceInitializationException {
@@ -199,17 +199,24 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		double doc_lenth = 0.0;
 
 		//compute cosine similarity between two sentences
+		for (Entry<String, Integer> entry: queryVector.entrySet()) {
+		  System.out.print(entry.getKey()+" ");
+		}
+		System.out.println("\n");
+		for (Entry<String, Integer> entry: docVector.entrySet()) {
+		  System.out.print(entry.getKey()+" ");
+		}
 
 		for (Entry<String, Integer> entry : queryVector.entrySet()) {
 		  String qterm = entry.getKey();
 		  if (docVector.containsKey(qterm)) {
         cosine_similarity += entry.getValue() * docVector.get(qterm);
       }
-      query_lenth += Math.pow(entry.getValue(), 2);
+      query_lenth += Math.pow(entry.getValue(), 2.0);
     }
 		
 		for (Entry<String, Integer> entry : docVector.entrySet()){
-		  doc_lenth += Math.pow(entry.getValue(), 2);
+		  doc_lenth += Math.pow(entry.getValue(), 2.0);
 		}
 		
 		//normalize query and doc length
@@ -217,7 +224,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 		doc_lenth = Math.sqrt(doc_lenth);
 		cosine_similarity = cosine_similarity/(query_lenth * doc_lenth);
 		
-		//System.out.println(cosine_similarity);
+		System.out.println(cosine_similarity);
 		
 		return cosine_similarity;
 	}

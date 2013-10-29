@@ -15,6 +15,6 @@ qid=4	rel=0	Wear a smile and have friends; wear a scowl and have wrinkles
 qid=4	rel=1	If you see a friend without a smile, give him one of yours
 qid=4	rel=0	Behind every girls smile is a best friend who put it there
 qid=5	rel=99	It takes a long time to grow an old friend
-qid=5	rel=0	Old wine and friends improve with age
+qid=5	rel=0	old wine and friends improve with age
 qid=5	rel=0	With clothes the new are the best, with friends the old are the best
-qid=5	rel=1	Old friends are best
+qid=5	rel=1	old friends are best

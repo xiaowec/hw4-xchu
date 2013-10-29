@@ -43,16 +43,16 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 		Map<String, Integer> termMap = new HashMap<String, Integer>(); 
 		
 	  //TO DO: construct a vector of tokens and update the tokenList in CAS
-		TextTokenizer tokenizer = new TextTokenizer(docText);
-		while (tokenizer.hasNext()) {
-		  String word = tokenizer.nextToken();
-		  if (!Utils.judgeStopword(word)) {
-		    if (termMap.containsKey(word)) {
-          int freq = termMap.get(word);
-          termMap.put(word, freq+1);
+		String[] words = docText.split("[ \\,\\;\\.]");
+		for (int i = 0; i < words.length; i++) {
+		  words[i] = words[i].toLowerCase();
+		  if (!Utils.judgeStopword(words[i])) {
+        if (termMap.containsKey(words[i])) {
+          int freq = termMap.get(words[i]);
+          termMap.put(words[i], freq+1);
         }
         else {
-          termMap.put(word, 1);
+          termMap.put(words[i], 1);
         }
       }
     }
@@ -60,7 +60,6 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 		//Construct ArrayList of Tokens
 		ArrayList<Token> tlist = new ArrayList<Token>();
 		Iterator iter = termMap.entrySet().iterator();
-		
 		
 		//add tokens to ArrayList
 		while (iter.hasNext()) {
